@@ -18,31 +18,36 @@ def parse_sf(sf: str):
 
 # データベース作成
 def handle_createdb(args: argparse.Namespace):
+    logging.info("handle_createdb")
     safe_sf = parse_sf(args.s)
     database = f"sf{safe_sf}"
     subprocess.run(["createdb", database], check=True)
 
 # スキーマ構成
 def handle_ddl(args: argparse.Namespace):
+    logging.info("handle_ddl")
     safe_sf = parse_sf(args.s)
     database = f"sf{safe_sf}"
     subprocess.run(["psql", "-d", database, "-f", "dss.ddl"], check=True)
 
 # データを生成
 def handle_dbgen(args: argparse.Namespace):
+    logging.info("handle_dbgen")
     safe_sf = parse_sf(args.s)
     directory = f"tables_sf{safe_sf}"
     os.makedirs(directory, exist_ok=True)
-    subprocess.run(["../dbgen", "-s", args.s, "-b", "../dists.dss"], cwd=directory)
-    # 末尾の "|" は不要なため削除する
-    # EOL_HANDLING を #define してビルドした場合は不要
-    # for table_file in os.listdir(directory):
-    #     assert table_file.endswith(".tbl")
-    #     logging.info(f"fix {table_file}")
-    #     subprocess.run(["sed", "-i", "-e", "s/|$//", table_file], cwd=directory)
+    subprocess.run(["../dbgen", "-f", "-s", args.s, "-b", "../dists.dss"], cwd=directory)
+    if False:
+        # 末尾の "|" は不要なため削除する
+        # EOL_HANDLING を #define してビルドした場合は不要
+        for table_file in os.listdir(directory):
+            assert table_file.endswith(".tbl")
+            logging.info(f"fix {table_file}")
+            subprocess.run(["sed", "-i", "-e", "s/|$//", table_file], cwd=directory)
 
 # データをロード
 def handle_load(args: argparse.Namespace):
+    logging.info("handle_load")
     safe_sf = parse_sf(args.s)
     directory = f"tables_sf{safe_sf}"
     database = f"sf{safe_sf}"
@@ -69,12 +74,14 @@ def handle_load(args: argparse.Namespace):
 
 # インデックスを貼る
 def handle_ri(args: argparse.Namespace):
+    logging.info("handle_ri")
     safe_sf = parse_sf(args.s)
     database = f"sf{safe_sf}"
     subprocess.run(["psql", "-d", database, "-f", "dss.ri"], check=True)
 
 # クエリを生成
 def handle_qgen(args: argparse.Namespace):
+    logging.info("handle_qgen")
     safe_sf = parse_sf(args.s)
     directory = f"queries_sf{safe_sf}"
     os.makedirs(directory, exist_ok=True)
@@ -96,7 +103,7 @@ def handle_qgen(args: argparse.Namespace):
 
 def cold_start():
     logging.info("purge RAID controller cache")
-    subprocess.run(["sudo", "dd", "if=/dev/zero", "of=/export/data1/kusodeka.dat", "bs=1G", "count=8"], check=True)
+    subprocess.run(["sudo", "dd", "if=/dev/zero", "of=/export/data1/kusodeka.dat", "bs=1G", "count=16"], check=True)
     logging.info("purge page cache")
     subprocess.run(["sync"], check=True)
     subprocess.run(["sudo", "sysctl", "-w", "vm.drop_caches=3"], check=True)
@@ -105,6 +112,7 @@ def cold_start():
 
 # 計測
 def handle_time(args: argparse.Namespace):
+    logging.info("handle_time")
     safe_sf = parse_sf(args.s)
     database = f"sf{safe_sf}"
     directory = f"queries_sf{safe_sf}"
@@ -123,7 +131,7 @@ def handle_time(args: argparse.Namespace):
         result[i]["execution_time"] = execution_time
         with open(f"{result_dir}/{i}.txt", mode="w") as f:
             f.write(query_plan)
-    print(result)
+    print(result, file=sys.stderr)
 
 class Analyzer:
     def start(self):
@@ -166,6 +174,7 @@ class Analyzer:
 
 # CPU 利用率とディスク I/O の解析
 def handle_analyze(args: argparse.Namespace):
+    logging.info("handle_analyze")
     safe_sf = parse_sf(args.s)
 
     database = f"sf{safe_sf}"
@@ -196,13 +205,14 @@ def handle_analyze(args: argparse.Namespace):
         result[i]["users"] = dict(users)
         result[i]["breads"] = dict(breads)
         result[i]["bwrtns"] = dict(bwrtns)
-        print(json.dumps(result[i]))
+        print(json.dumps(result[i]), file=sys.stderr)
     with open(f"{result_dir}/all.json", mode="w") as f:
         json.dump(result, f, indent=4)
-    print(json.dumps(result))
+    print(json.dumps(result), file=sys.stderr)
 
 # 一連の流れを全部やる
 def handle_all(args: argparse.Namespace):
+    logging.info("handle_all")
     handle_createdb(args)
     handle_ddl(args)
     if not args.p: handle_dbgen(args)
