@@ -35,10 +35,11 @@ def handle_dbgen(args: argparse.Namespace):
     os.makedirs(directory, exist_ok=True)
     subprocess.run(["../dbgen", "-s", args.s, "-b", "../dists.dss"], cwd=directory)
     # 末尾の "|" は不要なため削除する
-    for table_file in os.listdir(directory):
-        assert table_file.endswith(".tbl")
-        logging.info(f"fix {table_file}")
-        subprocess.run(["sed", "-i", "-e", "s/|$//", table_file], cwd=directory)
+    # EOL_HANDLING を #define してビルドした場合は不要
+    # for table_file in os.listdir(directory):
+    #     assert table_file.endswith(".tbl")
+    #     logging.info(f"fix {table_file}")
+    #     subprocess.run(["sed", "-i", "-e", "s/|$//", table_file], cwd=directory)
 
 # データをロード
 def handle_load(args: argparse.Namespace):
