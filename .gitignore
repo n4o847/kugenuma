@@ -1,0 +1,6 @@
+/dbgen/*.o
+/dbgen/dbgen
+/dbgen/qgen
+
+/dbgen/tables_*
+/dbgen/queries_*
