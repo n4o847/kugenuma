@@ -90,14 +90,15 @@ def handle_qgen(args: argparse.Namespace):
         query = subprocess.check_output([
             "../qgen",
             "-d",  # デフォルト
-            "-N",  # rownum 無視 (なんかバグってる)
-            "-x",  # explain (なんか効かない)
+            "-x",  # explain
             "-s", args.s,
             "-b", "../dists.dss",
             f"{i}",
         ], cwd="queries").decode()
-        query = re.sub(r"^(where rownum .*)$", r"-- \1", query, flags=re.MULTILINE)
-        query = re.sub(r"^(select)$", r"explain analyze \1", query, flags=re.MULTILINE)
+        if False:
+            # tpcd.h を PostgreSQL 用に設定済みであれば不要
+            query = re.sub(r"^(where rownum .*)$", r"-- \1", query, flags=re.MULTILINE)
+            query = re.sub(r"^(select)$", r"explain analyze \1", query, flags=re.MULTILINE)
         with open(f"{directory}/{i}.sql", mode="w") as f:
             f.write(query)
 
