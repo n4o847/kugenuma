@@ -183,10 +183,12 @@ def handle_analyze(args: argparse.Namespace):
     result_dir = f"results_sf{safe_sf}"
     os.makedirs(result_dir, exist_ok=True)
 
+    queries = list(map(int, args.q.split(",")))
+
     analyzer = Analyzer()
     result = {}
 
-    for i in range(1, 10 + 1):
+    for i in queries:
         cold_start()
         logging.info(f"execute query {i}")
         analyzer.start()
@@ -260,6 +262,7 @@ def main():
 
     parser_analyze = subparsers.add_parser("analyze")
     parser_analyze.add_argument('-s', required=True, help="scale factor")
+    parser_analyze.add_argument('-q', default='1,2,3,4,5,6,7,8,9,10', help="queries to execute (separated by commas)")
     parser_analyze.set_defaults(handler=handle_analyze)
 
     parser_all = subparsers.add_parser("all")
