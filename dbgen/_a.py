@@ -9,6 +9,10 @@ import subprocess
 import sys
 import time
 
+config = {
+    "use_pg_hint_plan": True,
+}
+
 def parse_sf(sf: str):
     if not re.match(r"^(0|[1-9][0-9]*)(\.[0-9]*[1-9])?$", sf):
         raise Exception(f"invalid scale factor {repr(sf)}")
@@ -52,6 +56,8 @@ def handle_load(args: argparse.Namespace):
     directory = f"tables_sf{safe_sf}"
     database = f"sf{safe_sf}"
     subprocess.run(["psql", "-d", database, "-c", "CREATE EXTENSION pg_bulkload;"])
+    if config["use_pg_hint_plan"]:
+        subprocess.run(["psql", "-d", database, "-c", "CREATE EXTENSION pg_hint_plan;"])
     for table_file in os.listdir(directory):
         assert table_file.endswith(".tbl")
         table = re.sub(r"\.tbl$", "", table_file)
