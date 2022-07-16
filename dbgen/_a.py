@@ -134,7 +134,7 @@ def handle_time(args: argparse.Namespace):
             f.write(query_plan)
     print(result, file=sys.stderr)
 
-class Analyzer:
+class SarAnalyzer:
     def start(self):
         self.process_u = subprocess.Popen(["sar", "-u", "1"], stdout=subprocess.PIPE)
         self.process_b = subprocess.Popen(["sar", "-b", "1"], stdout=subprocess.PIPE)
@@ -173,6 +173,35 @@ class Analyzer:
             bwrtns.append((time, bwrtn))
         return users, breads, bwrtns
 
+class SelfMadeAnalyzer:
+    def start(self):
+        self.process = subprocess.Popen(["../perf/target/release/perf"], stdout=subprocess.PIPE)
+
+    def end(self):
+        self.process.terminate()
+        self.result = ''.join([line.decode() for line in self.process.stdout.readlines()])
+
+    def save_result(self, dir: str):
+        pass
+
+    def get_result(self):
+        users = []
+        breads = []
+        bwrtns = []
+        for i, line in enumerate(self.result.splitlines()):
+            if i == 0:
+                continue
+            time, _, bread, _, bwrtn, user, *_ = map(int, line.split())
+            time //= 1000
+            time = f"{time // 3600 :02}:{time // 60 % 60 :02}:{time % 60 :02}"
+            user = f"{user}.00"
+            bread = f"{bread}.00"
+            bwrtn = f"{bwrtn}.00"
+            users.append((time, user))
+            breads.append((time, bread))
+            bwrtns.append((time, bwrtn))
+        return users, breads, bwrtns
+
 # CPU 利用率とディスク I/O の解析
 def handle_analyze(args: argparse.Namespace):
     logging.info("handle_analyze")
@@ -185,7 +214,8 @@ def handle_analyze(args: argparse.Namespace):
 
     queries = list(map(int, args.q.split(",")))
 
-    analyzer = Analyzer()
+    analyzer = SarAnalyzer()
+    # analyzer = SelfMadeAnalyzer()
     result = {}
 
     for i in queries:
