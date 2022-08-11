@@ -141,42 +141,44 @@ def handle_time(args: argparse.Namespace):
     print(result, file=sys.stderr)
 
 class SarAnalyzer:
+    def __init__(self, dir: str) -> None:
+        self.dir = dir
+
     def start(self):
-        self.process_u = subprocess.Popen(["sar", "-u", "1"], stdout=subprocess.PIPE)
-        self.process_b = subprocess.Popen(["sar", "-b", "1"], stdout=subprocess.PIPE)
+        os.makedirs(self.dir, exist_ok=True)
+        self.outfile_u = open(f"{self.dir}/sar_u.txt", "w")
+        self.process_u = subprocess.Popen(["sar", "-u", "1"], stdout=self.outfile_u)
+        self.outfile_b = open(f"{self.dir}/sar_b.txt", "w")
+        self.process_b = subprocess.Popen(["sar", "-b", "1"], stdout=self.outfile_b)
 
     def end(self):
         self.process_u.terminate()
         self.process_b.terminate()
-        self.result_u = ''.join([line.decode() for line in self.process_u.stdout.readlines()])
-        self.result_b = ''.join([line.decode() for line in self.process_b.stdout.readlines()])
-
-    def save_result(self, dir: str):
-        with open(f"{dir}/sar_u.txt") as f:
-            f.write(self.result_u)
-        with open(f"{dir}/sar_s.txt") as f:
-            f.write(self.result_s)
+        self.outfile_u.close()
+        self.outfile_b.close()
 
     def get_result(self):
         users = []
         breads = []
         bwrtns = []
-        for line in self.result_u.splitlines():
-            m = re.match(r"(\d\d:\d\d:\d\d)\s+all\s+([0-9.]+)", line)
-            if m is None:
-                continue
-            time = m.group(1)
-            user = m.group(2)
-            users.append((time, user))
-        for line in self.result_b.splitlines():
-            m = re.match(r"(\d\d:\d\d:\d\d)\s+([0-9.]+)\s+([0-9.]+)\s+([0-9.]+)\s+([0-9.]+)\s+([0-9.]+)", line)
-            if m is None:
-                continue
-            time = m.group(1)
-            bread = m.group(5)
-            bwrtn = m.group(6)
-            breads.append((time, bread))
-            bwrtns.append((time, bwrtn))
+        with open(f"{self.dir}/sar_u.txt") as f:
+            for line in f:
+                m = re.match(r"(\d\d:\d\d:\d\d)\s+all\s+([0-9.]+)", line)
+                if m is None:
+                    continue
+                time = m.group(1)
+                user = m.group(2)
+                users.append((time, user))
+        with open(f"{self.dir}/sar_b.txt") as f:
+            for line in f:
+                m = re.match(r"(\d\d:\d\d:\d\d)\s+([0-9.]+)\s+([0-9.]+)\s+([0-9.]+)\s+([0-9.]+)\s+([0-9.]+)", line)
+                if m is None:
+                    continue
+                time = m.group(1)
+                bread = m.group(5)
+                bwrtn = m.group(6)
+                breads.append((time, bread))
+                bwrtns.append((time, bwrtn))
         return users, breads, bwrtns
 
 class SelfMadeAnalyzer:
@@ -220,11 +222,10 @@ def handle_analyze(args: argparse.Namespace):
 
     queries = list(map(int, args.q.split(",")))
 
-    analyzer = SarAnalyzer()
-    # analyzer = SelfMadeAnalyzer()
     result = {}
 
     for i in queries:
+        analyzer = SarAnalyzer(dir=f"{result_dir}/{i}")
         cold_start()
         logging.info(f"execute query {i}")
         analyzer.start()
